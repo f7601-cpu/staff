@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F3A5F">
+<meta name="mobile-web-app-capable" content="yes">
+<title>인원현황 관리표</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--navy:#1F3A5F;--navy2:#2C5282;--bg:#F3F5F8;--card:#fff;--line:#E2E8F0;--muted:#64748B;--txt:#1A202C;
+--leave:#2B6CB0;--half:#4299E1;--early:#D69E2E;--late:#DD6B20;--out:#805AD5;--absent:#C53030;--ok:#2F855A;--sat:#2B6CB0;--hol:#C0392B}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,"Malgun Gothic","Noto Sans KR","Apple SD Gothic Neo",sans-serif;font-size:16px}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:16px}
+.hidden{display:none!important}
+header.top{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:12px 16px 10px}
+header.top .sub{font-size:13px;opacity:.8}
+header.top h1{margin:2px 0 0;font-size:20px}
+.back{background:none;border:0;color:#fff;font-size:22px;padding:0 10px 0 0;vertical-align:middle}
+main{padding:12px 12px 96px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.stat{background:var(--card);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px;color:var(--navy)}
+.stat span{font-size:13px;color:var(--muted)}
+.search{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 16px;font-size:15px;min-height:44px;min-width:56px;color:var(--txt)}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.period{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:6px;margin-bottom:8px}
+.period button{border:0;background:#EDF2F7;border-radius:10px;width:52px;height:46px;font-size:18px}
+.period b{font-size:15px}
+.list .row{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;min-height:60px;border:0;width:100%;text-align:left}
+.row .nm{font-size:17px;font-weight:700}
+.row .meta{font-size:13px;color:var(--muted);margin-top:4px}
+.row .rt{text-align:right;font-size:13px;color:var(--muted)}
+.row .rt b{display:block;font-size:18px;color:var(--navy)}
+.badge{display:inline-block;font-size:13px;padding:2px 8px;border-radius:999px;background:#EDF2F7;color:#2D3748;margin-right:4px}
+.badge.alba{background:#FEF3C7;color:#92400E}.badge.f{background:#FCE7F3;color:#9D174D}.badge.m{background:#E0F2FE;color:#075985}
+.badge.quit{background:#E2E8F0;color:#718096}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:6;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav.bottom button{border:0;background:none;padding:8px 0 10px;font-size:13px;color:var(--muted);min-height:58px}
+nav.bottom button i{display:block;font-style:normal;font-size:20px}
+nav.bottom button.on{color:var(--navy);font-weight:700}
+nav.bottom .fab{position:relative}
+nav.bottom .fab i{width:54px;height:54px;line-height:54px;border-radius:50%;background:#E07B24;color:#fff;font-size:30px;margin:-22px auto 0;box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sum .box{background:#F7FAFC;border-radius:10px;padding:10px;text-align:center}
+.sum .box b{display:block;font-size:20px}
+.sum .box span{font-size:14px;color:var(--muted)}
+.sum .box small{display:block;font-size:13px;color:var(--muted)}
+.big{font-size:26px!important;color:var(--navy)}
+.rec{display:flex;align-items:center;gap:10px;padding:12px 4px;min-height:52px;border-bottom:1px solid var(--line);background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
+.rec .dt{width:92px;font-size:14px}
+.rec .ty{font-size:13px;color:#fff;border-radius:6px;padding:3px 8px;min-width:44px;text-align:center}
+.rec .rs{flex:1;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-연차{background:var(--leave)}.t-반차{background:var(--half)}.t-조퇴{background:var(--early)}.t-지각{background:var(--late)}.t-외출{background:var(--out)}.t-결근{background:var(--absent)}
+.sat{color:var(--sat)}.sun{color:var(--hol)}
+.btn{border:0;border-radius:12px;padding:14px 16px;font-size:16px;background:#EDF2F7;color:var(--txt);width:100%;margin-top:8px}
+.btn.pri{background:var(--navy);color:#fff}.btn.warn{background:#FED7D7;color:#9B2C2C}.btn.org{background:#E07B24;color:#fff}
+.btn.sm{width:auto;padding:11px 16px;font-size:15px;margin:0;min-height:44px}
+.h2{font-size:15px;font-weight:700;margin:4px 0 10px;color:var(--navy);display:flex;justify-content:space-between;align-items:center}
+label.f{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.inp{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:12px 0;font-size:15px}
+.seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end}
+.sheet{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 8px;font-size:18px}
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;display:flex;align-items:center;justify-content:center;padding:20px}
+.dlg .box{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:420px}
+.dlg .msg{white-space:pre-wrap;line-height:1.5;font-size:15px}
+.dlg .bt{display:flex;gap:8px;margin-top:14px}
+.dlg .bt .btn{margin:0}
+.banner{background:#FFF5E6;border:1px solid #F6AD55;color:#7B341E;border-radius:12px;padding:12px;margin-bottom:10px;font-size:14px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2D3748;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:40;max-width:90%}
+.lock{position:fixed;inset:0;background:var(--navy);color:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.dots{display:flex;gap:14px;margin:18px 0 8px}.dots i{width:16px;height:16px;border-radius:50%;border:2px solid #fff}.dots i.on{background:#fff}
+.keys{display:grid;grid-template-columns:repeat(3,76px);gap:14px;margin-top:16px}
+.keys button{height:76px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:26px}
+.lock .err{color:#FEB2B2;min-height:22px;font-size:14px;text-align:center}
+.muted{color:var(--muted);font-size:14px}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.empty{text-align:center;color:var(--muted);padding:30px 0}
+.quick{display:flex;gap:6px;margin-top:6px}.quick button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 0;min-height:44px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="lock" class="lock hidden">
+  <div style="font-size:13px;opacity:.75">인원현황 관리표</div>
+  <h2 id="lockTitle" style="margin:6px 0 0">비밀번호 4자리</h2>
+  <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+  <div class="err" id="lockErr"></div>
+  <div class="keys" id="keys"></div>
+  <button id="lockCancel" class="btn sm hidden" data-act="cancelPin" style="margin-top:18px;background:rgba(255,255,255,.15);color:#fff">취소</button>
+</div>
+
+<header class="top" id="hdr"><div class="sub" id="company">경주법주</div><h1 id="title">인원현황 관리표</h1></header>
+<main id="view"></main>
+
+<nav class="bottom" id="nav">
+  <button data-go="home" class="on"><i>🏠</i>홈</button>
+  <button data-go="records"><i>📋</i>기록</button>
+  <button data-act="addRecord" class="fab" id="fab"><i>＋</i>기록 추가</button>
+  <button data-go="people"><i>👥</i>명단</button>
+  <button data-go="settings"><i>⚙</i>설정</button>
+</nav>
+<div id="modals"></div>
+
+<script>
+"use strict";
+/* ============================================================== 기본값 */
+const APP_VERSION = "0.1.2", SCHEMA_VERSION = 1, DB_NAME = "staff-leave-db";
+const BACKUP_FORMAT = "personnel-attendance-backup";
+const STORES = ["employees", "attendance", "leave_balances", "settings", "audit_logs"];
+const TYPES = ["연차", "반차", "조퇴", "지각", "외출", "결근"];
+const LEAVE_TYPES = { "연차": 1, "반차": 0.5 };
+const TIME_TYPES = ["조퇴", "지각", "외출"];
+const DEFAULT_CATS = ["현장직", "아르바이트"];
+const LOCAL_ONLY = ["pinHash", "pinSalt", "pinFail", "pinLockUntil", "preRestoreSnapshot", "recoveryNeeded"];   // 백업에 넣지 않는 설정 (이 기기 전용)
+const SETTING_KEYS = { company: "string", categories: "array", lastBackup: "string", firstUse: "string" };   // 백업 허용 설정
+const WEEK = "일월화수목금토";
+
+/* ============================================================== SHA-256 (외부 라이브러리 없이) */
+function sha256(str) {
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,
+    0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,
+    0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,
+    0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,
+    0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str);
+  const l = bytes.length, withOne = l + 9, n = Math.ceil(withOne / 64) * 64;
+  const m = new Uint8Array(n); m.set(bytes); m[l] = 0x80;
+  const bits = l * 8, dv = new DataView(m.buffer);
+  dv.setUint32(n - 8, Math.floor(bits / 0x100000000)); dv.setUint32(n - 4, bits >>> 0);
+  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const W = new Uint32Array(64);
+  const r = (x, s) => (x >>> s) | (x << (32 - s));
+  for (let o = 0; o < n; o += 64) {
+    for (let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = r(W[i-15],7) ^ r(W[i-15],18) ^ (W[i-15] >>> 3), s1 = r(W[i-2],17) ^ r(W[i-2],19) ^ (W[i-2] >>> 10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) >>> 0;
+    }
+    let [a,b,c,d,e,f,g,h] = H;
+    for (let i = 0; i < 64; i++) {
+      const S1 = r(e,6) ^ r(e,11) ^ r(e,25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K[i] + W[i]) >>> 0;
+      const S0 = r(a,2) ^ r(a,13) ^ r(a,22), mj = (a & b) ^ (a & c) ^ (b & c), t2 = (S0 + mj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H = H.map((v, i) => (v + [a,b,c,d,e,f,g,h][i]) >>> 0);
+  }
+  return H.map(v => v.toString(16).padStart(8, "0")).join("");
+}
+
+/* ============================================================== 날짜 (문자열 YYYY-MM-DD, 시차 영향 없음) */
+const pad = n => String(n).padStart(2, "0");
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function isDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return false;
+  const [y, m, d] = s.split("-").map(Number), t = new Date(y, m - 1, d);
+  return t.getFullYear() === y && t.getMonth() === m - 1 && t.getDate() === d;
+}
+function normDate(s) {
+  s = String(s || "").trim().replace(/[./]/g, "-").replace(/\s/g, "");
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return "";
+  const r = `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  return isDate(r) ? r : "";
+}
+function dow(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d).getDay(); }
+function dayLabel(s) { const w = dow(s); return `<span class="${w === 6 ? "sat" : w === 0 ? "sun" : ""}">${s.slice(2).replace(/-/g, ".")}(${WEEK[w]})</span>`; }
+function periodOf(s) { const y = +s.slice(0, 4), start = s.slice(5) >= "07-01" ? y : y - 1; return { start: `${start}-07-01`, end: `${start + 1}-06-30`, label: `${start}.7.1 ~ ${start + 1}.6.30` }; }
+function shiftPeriod(p, k) { return periodOf(`${+p.start.slice(0, 4) + k}-07-01`); }
+function yearsServed(hire, on) {
+  if (!isDate(hire) || !isDate(on)) return null;
+  const [hy, hm, hd] = hire.split("-").map(Number), [oy, om, od] = on.split("-").map(Number);
+  let n = oy - hy; if (om < hm || (om === hm && od < hd)) n--; return Math.max(0, n);
+}
+function nowISO() { const d = new Date(), o = -d.getTimezoneOffset(), s = o >= 0 ? "+" : "-";
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${s}${pad(Math.floor(Math.abs(o)/60))}:${pad(Math.abs(o)%60)}`; }
+function uuid() {
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+  const h = [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtN = v => v == null ? "-" : (Math.round(v * 100) / 100).toString();
+const fmtMin = m => !m ? "0분" : (m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? " " + (m % 60) + "분" : ""}` : `${m}분`);
+
+/* ============================================================== IndexedDB */
+let DB = null;
+function openDB() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(DB_NAME, 1);
+    rq.onupgradeneeded = () => {
+      const d = rq.result;
+      if (!d.objectStoreNames.contains("employees")) d.createObjectStore("employees", { keyPath: "id" });
+      if (!d.objectStoreNames.contains("attendance")) d.createObjectStore("attendance", { keyPath: "id" }).createIndex("employeeId", "employeeId");
+      if (!d.objectStoreNames.contains("leave_balances")) d.createObjectStore("leave_balances", { keyPath: "id" }).createIndex("employeeId", "employeeId");
+      if (!d.objectStoreNames.contains("settings")) d.createObjectStore("settings", { keyPath: "key" });
+      if (!d.objectStoreNames.contains("audit_logs")) d.createObjectStore("audit_logs", { keyPath: "id" });
+    };
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+function reqP(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function all(store) { return reqP(DB.transaction(store).objectStore(store).getAll()); }
+async function getS(key, def = null) { const r = await reqP(DB.transaction("settings").objectStore("settings").get(key)); return r ? r.value : def; }
+/** 여러 저장소 쓰기를 한 트랜잭션으로 (하나라도 실패하면 전부 취소) + 감사기록 */
+function write(ops, action = "", opt = {}) {
+  if (S.recovery && !opt.force && !ops.every(o => o.store === "settings")) {
+    toast("복구가 필요한 상태라 저장을 막았습니다 (설정 → 복구)");
+    return Promise.reject(Object.assign(new Error("복구 필요 - 저장 제한"), { blocked: true }));
+  }
+  return new Promise((res, rej) => {
+    const names = [...new Set(ops.map(o => o.store).concat(["audit_logs"]))];
+    const t = DB.transaction(names, "readwrite");
+    let firstErr = null;                                  // 처음 실패한 요청의 원인 (트랜잭션 최종 상태로 판정)
+    t.oncomplete = () => res(true);
+    t.onerror = ev => { if (!firstErr) firstErr = (ev.target && ev.target.error) || t.error; };
+    t.onabort = () => { const er = firstErr || t.error || new Error("저장 취소 (전부 되돌림)"); logLocalError("저장", er); rej(er); };
+    for (const o of ops) {
+      const st = t.objectStore(o.store);
+      const rq = o.op === "delete" ? st.delete(o.key) : st.put(o.value);
+      rq.onerror = () => { if (!firstErr) firstErr = rq.error; };
+      if (window.__failWriteAt >= 0 && ops.indexOf(o) === window.__failWriteAt) { firstErr = new Error("저장 실패 (시험)"); t.abort(); return; }   // 시험용 고장 주입
+      if (o.store !== "settings" || !LOCAL_ONLY.includes(o.value && o.value.key)) {
+        if (o.store !== "settings")
+          t.objectStore("audit_logs").put({ id: uuid(), action: action || (o.op === "delete" ? "삭제" : "저장"), store: o.store,
+            targetId: o.key || (o.value && (o.value.id || o.value.key)), before: o.before ?? null,
+            after: o.op === "delete" ? null : o.value, timestamp: nowISO() });
+      }
+    }
+  });
+}
+function logLocalError(where, er) { try { console.warn(`[인원현황] ${where} 실패:`, er && (er.name + " " + er.message)); window.__lastError = { where, name: er && er.name, message: er && er.message, at: nowISO() }; } catch (_) {} }
+async function setS(key, value) { return write([{ store: "settings", op: "put", value: { key, value } }], "설정"); }
+
+/* ============================================================== 상태 · 계산 */
+const S = { view: "home", period: periodOf(todayStr()), q: "", cat: "전체", gender: "전체", showQuit: false,
+  emps: [], recs: [], bals: [], cats: DEFAULT_CATS.slice(), company: "경주법주", detail: null, recType: "전체" };
+
+async function load() {
+  [S.emps, S.recs, S.bals] = await Promise.all([all("employees"), all("attendance"), all("leave_balances")]);
+  S.cats = await getS("categories", DEFAULT_CATS.slice());
+  S.company = await getS("company", "경주법주");
+  S.lastBackup = await getS("lastBackup", null);
+  S.firstUse = await getS("firstUse", null);
+  S.hasUndo = !!(await getS("preRestoreSnapshot", null));
+  S.recovery = await getS("recoveryNeeded", null);
+  if (!S.firstUse) { S.firstUse = todayStr(); await setS("firstUse", S.firstUse); }
+  S.emps.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+/** 법정 기준 참고값 (1년 이상 · 자동 계산 대상만). 1년 미만 · 아르바이트 · 직접 입력 지정 → 직접 입력 */
+function legalRef(e, period) {
+  if (e.leaveMode === "manual") return { days: null, years: null, note: "직접 입력 대상" };
+  if (!e.hireDate) return { days: null, years: null, note: "입사일 없음" };
+  const Y = yearsServed(e.hireDate, period.start);
+  if (Y == null) return { days: null, years: null, note: "입사일 오류 · 직접 입력" };
+  if (Y < 1) return { days: null, years: Y, note: "입사 1년 미만 · 직접 입력" };
+  return { days: Math.min(25, 15 + Math.floor((Y - 1) / 2)), years: Y, note: `${Y}년 근속 기준` };
+}
+function balanceRow(e, period) { return S.bals.find(b => b.employeeId === e.id && b.periodStart === period.start) || null; }
+function summary(e, period, recs = S.recs) {
+  const ref = legalRef(e, period), b = balanceRow(e, period);
+  const mine = recs.filter(r => r.employeeId === e.id && r.date >= period.start && r.date <= period.end);
+  const used = mine.reduce((s, r) => s + (LEAVE_TYPES[r.type] ? (r.units ?? LEAVE_TYPES[r.type]) : 0), 0);
+  const total = b && b.overrideDays != null ? b.overrideDays : ref.days;
+  const src = b && b.overrideDays != null ? "확정" : ref.days != null ? "참고값" : "미입력";
+  const cnt = t => mine.filter(r => r.type === t).length, mins = t => mine.filter(r => r.type === t).reduce((s, r) => s + (r.minutes || 0), 0);
+  return { ref, total, src, used, remain: total == null ? null : Math.round((total - used) * 100) / 100,
+    early: cnt("조퇴"), earlyMin: mins("조퇴"), late: cnt("지각"), lateMin: mins("지각"), out: cnt("외출"), outMin: mins("외출"),
+    absent: cnt("결근"), records: mine.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || "").localeCompare(a.createdAt || "")) };
+}
+
+/* ============================================================== 화면 공통 */
+const $ = s => document.querySelector(s);
+function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+/** 확인 창 → Promise<boolean> */
+function ask(msg, ok = "확인", cancel = "취소", danger = false) {
+  return new Promise(res => {
+    const d = document.createElement("div"); d.className = "dlg"; d.dataset.dlg = "1";
+    d.innerHTML = `<div class="box"><div class="msg">${esc(msg)}</div><div class="bt">
+      ${cancel ? `<button class="btn" data-r="0">${esc(cancel)}</button>` : ""}<button class="btn ${danger ? "warn" : "pri"}" data-r="1">${esc(ok)}</button></div></div>`;
+    d.addEventListener("click", ev => { const b = ev.target.closest("[data-r]"); if (b) { d.remove(); res(b.dataset.r === "1"); } });
+    document.body.appendChild(d);
+  });
+}
+function sheet(html) { $("#modals").innerHTML = `<div class="modal" id="sheetBg"><div class="sheet" id="sheet">${html}</div></div>`;
+  $("#sheetBg").addEventListener("click", e => { if (e.target.id === "sheetBg") closeSheet(); }); }
+function closeSheet() { $("#modals").innerHTML = ""; }
+function go(v, opt = {}) { Object.assign(S, opt); S.view = v; render(); window.scrollTo(0, 0); }
+
+function render() {
+  document.querySelectorAll("nav.bottom [data-go]").forEach(b => b.classList.toggle("on", b.dataset.go === S.view || (S.view === "detail" && b.dataset.go === "home")));
+  $("#company").textContent = S.company + " · 인원관리";
+  const V = { home: vHome, detail: vDetail, records: vRecords, people: vPeople, settings: vSettings }[S.view] || vHome;
+  $("#title").innerHTML = { home: "인원현황 관리표", detail: `<button class="back" data-act="back">‹</button>${esc((S.emps.find(e => e.id === S.detail) || {}).name || "")}`,
+    records: "근태 기록", people: "명단 관리", settings: "설정" }[S.view] || "인원현황 관리표";
+  $("#view").innerHTML = V();
+}
+function periodBar() { return `<div class="period"><button data-act="pPrev">◀</button><b>집계 ${S.period.label}</b><button data-act="pNext">▶</button></div>`; }
+function badges(e) {
+  return `<span class="badge ${e.category === "아르바이트" ? "alba" : ""}">${esc(e.category)}</span>` +
+    (e.gender ? `<span class="badge ${e.gender === "여" ? "f" : "m"}">${esc(e.gender)}</span>` : "") +
+    (e.status === "퇴사" ? `<span class="badge quit">퇴사</span>` : "");
+}
+function filtered() {
+  const q = S.q.trim();
+  return S.emps.filter(e => (S.showQuit || e.status !== "퇴사") && (S.cat === "전체" || e.category === S.cat) &&
+    (S.gender === "전체" || e.gender === S.gender) && (!q || e.name.includes(q)));
+}
+function recoveryBanner() {
+  if (!S.recovery) return "";
+  return `<div class="banner" id="recoveryBanner" style="background:#FFF5F5;border-color:#FC8181;color:#822727">⚠ 자료 복구가 필요합니다 — 입력·수정이 막혀 있습니다.<br>${esc(S.recovery.why)}<br>
+    <button class="btn sm warn" style="margin-top:8px" data-go="settings">설정에서 복구하기</button></div>`;
+}
+function backupBanner() {
+  const last = S.lastBackup, base = last ? last.slice(0, 10) : S.firstUse;
+  if (!S.emps.length || !base) return "";
+  const days = Math.floor((new Date(todayStr()) - new Date(base)) / 86400000);
+  if (days < 7) return "";
+  return `<div class="banner" id="backupBanner">💾 ${last ? `마지막 백업 ${last.slice(0, 10)} (${days}일 전)` : "아직 백업한 적이 없습니다"} — 폰을 바꾸거나 브라우저 자료가 지워지면 복구할 수 없습니다.
+    <button class="btn sm pri" style="margin-top:8px" data-act="backup">지금 백업하기</button></div>`;
+}
+
+/* ---------------------------------------------------------------- 홈 */
+function vHome() {
+  const act = S.emps.filter(e => e.status !== "퇴사");
+  const cnt = c => act.filter(e => e.category === c).length;
+  const list = filtered();
+  const catChips = ["전체", ...S.cats].map(c => `<button class="chip ${S.cat === c ? "on" : ""}" data-act="cat" data-v="${esc(c)}">${esc(c)}</button>`).join("");
+  const gChips = ["전체", "남", "여"].map(g => `<button class="chip ${S.gender === g ? "on" : ""}" data-act="gender" data-v="${g}">${g === "전체" ? "남·여" : g}</button>`).join("");
+  return `${recoveryBanner()}${backupBanner()}
+  <div class="stats"><div class="stat"><b id="stAll">${act.length}</b><span>재직</span></div>
+    <div class="stat"><b>${cnt("현장직")}</b><span>현장직</span></div><div class="stat"><b>${cnt("아르바이트")}</b><span>아르바이트</span></div></div>
+  <input class="search" id="q" placeholder="🔍 이름 검색" value="${esc(S.q)}" autocomplete="off">
+  <div class="chips">${catChips}</div><div class="chips" style="padding-top:0">${gChips}</div>
+  ${periodBar()}
+  <div class="list" id="empList">${list.length ? list.map(e => {
+    const s = summary(e, S.period);
+    return `<button class="row" data-act="open" data-id="${e.id}"><div><div class="nm">${esc(e.name)}</div><div class="meta">${badges(e)}</div></div>
+      <div class="rt">잔여 연차<b>${s.remain == null ? "직접 입력" : fmtN(s.remain) + "일"}</b>${s.src === "참고값" ? "참고값" : ""}</div></button>`;
+  }).join("") : `<div class="empty">${S.emps.length ? "조건에 맞는 직원이 없습니다" : "명단이 비어 있습니다.<br>[명단] → 직원 추가 또는 [설정] → 명단 CSV 넣기"}</div>`}</div>
+  <div class="muted" style="text-align:center">표시 ${list.length}명</div>`;
+}
+
+/* ---------------------------------------------------------------- 개인 조회 */
+function vDetail() {
+  const e = S.emps.find(x => x.id === S.detail);
+  if (!e) return `<div class="empty">직원을 찾을 수 없습니다</div>`;
+  const s = summary(e, S.period);
+  const yrs = e.hireDate ? yearsServed(e.hireDate, todayStr()) : null;
+  return `<div class="card"><div>${badges(e)}</div>
+    <div class="muted" style="margin-top:6px">입사 ${e.hireDate || "-"}${yrs != null ? ` · 근속 ${yrs}년` : ""}${e.terminationDate ? ` · 퇴사 ${e.terminationDate}` : ""}${e.memo ? ` · ${esc(e.memo)}` : ""}</div>
+    <div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm" data-act="editEmp" data-id="${e.id}">정보 수정</button>
+    <button class="btn sm org" data-act="addRecord" data-id="${e.id}">＋ 기록 추가</button></div></div>
+  ${periodBar()}
+  <div class="card"><div class="h2">연차 <button class="btn sm" data-act="editTotal" data-id="${e.id}">총 연차 정하기</button></div>
+    <div class="sum" id="sumLeave">
+      <div class="box"><b class="big" data-k="total">${s.total == null ? "-" : fmtN(s.total)}</b><span>총 연차</span><small>${s.src}</small></div>
+      <div class="box"><b class="big" data-k="used">${fmtN(s.used)}</b><span>사용</span><small>연차·반차</small></div>
+      <div class="box"><b class="big" data-k="remain" style="color:${s.remain != null && s.remain < 0 ? "var(--absent)" : "var(--navy)"}">${s.remain == null ? "-" : fmtN(s.remain)}</b><span>잔여</span><small>${s.remain == null ? "총 연차 입력 필요" : "일"}</small></div>
+    </div>
+    <div class="muted" style="margin-top:8px">법정 참고: ${s.ref.days == null ? s.ref.note : `${s.ref.days}일 (${s.ref.note})`}</div></div>
+  <div class="card"><div class="h2">근태 (집계 기간)</div><div class="sum" style="grid-template-columns:repeat(4,1fr)" id="sumAtt">
+    <div class="box"><b data-k="early">${s.early}</b><span>조퇴</span><small>${fmtMin(s.earlyMin)}</small></div>
+    <div class="box"><b data-k="late">${s.late}</b><span>지각</span><small>${fmtMin(s.lateMin)}</small></div>
+    <div class="box"><b data-k="out">${s.out}</b><span>외출</span><small>${fmtMin(s.outMin)}</small></div>
+    <div class="box"><b data-k="absent" style="color:var(--absent)">${s.absent}</b><span>결근</span><small>일</small></div></div></div>
+  <div class="card"><div class="h2">사용 일자 (${s.records.length}건)</div><div id="recList">
+    ${s.records.length ? s.records.map(recRow).join("") : `<div class="empty">이 기간 기록이 없습니다</div>`}</div></div>`;
+}
+function recRow(r, withName) {
+  const e = S.emps.find(x => x.id === r.employeeId);
+  const amt = LEAVE_TYPES[r.type] ? `${r.units ?? LEAVE_TYPES[r.type]}일` : TIME_TYPES.includes(r.type) ? fmtMin(r.minutes) : "1일";
+  return `<button class="rec" data-act="editRec" data-id="${r.id}"><span class="dt">${dayLabel(r.date)}</span>
+    <span class="ty t-${r.type}">${r.type}</span><span style="font-size:13px;min-width:54px">${amt}</span>
+    <span class="rs">${withName && e ? `<b style="color:var(--txt)">${esc(e.name)}</b> ` : ""}${esc(r.reason || "")}</span></button>`;
+}
+
+/* ---------------------------------------------------------------- 기록 목록 */
+function vRecords() {
+  const q = S.q.trim();
+  const list = S.recs.filter(r => r.date >= S.period.start && r.date <= S.period.end && (S.recType === "전체" || r.type === S.recType))
+    .filter(r => { const e = S.emps.find(x => x.id === r.employeeId); return !q || (e && e.name.includes(q)); })
+    .sort((a, b) => b.date.localeCompare(a.date));
+  return `${periodBar()}<input class="search" id="q" placeholder="🔍 이름으로 거르기" value="${esc(S.q)}">
+  <div class="chips">${["전체", ...TYPES].map(t => `<button class="chip ${S.recType === t ? "on" : ""}" data-act="recType" data-v="${t}">${t}</button>`).join("")}</div>
+  <div class="card" id="allRecs">${list.length ? list.map(r => recRow(r, true)).join("") : `<div class="empty">기록이 없습니다</div>`}</div>`;
+}
+
+/* ---------------------------------------------------------------- 명단 관리 */
+function vPeople() {
+  const list = S.emps.filter(e => S.showQuit || e.status !== "퇴사");
+  return `<button class="btn org" data-act="editEmp">＋ 직원 추가</button>
+  <div class="chips"><button class="chip ${S.showQuit ? "on" : ""}" data-act="toggleQuit">퇴사자 ${S.showQuit ? "보이기" : "숨김"}</button></div>
+  <div class="list">${list.map(e => `<button class="row" data-act="editEmp" data-id="${e.id}"><div><div class="nm">${esc(e.name)}</div>
+    <div class="meta">${badges(e)} 입사 ${e.hireDate || "-"}</div></div><div class="rt">${e.leaveMode === "manual" ? "연차 직접 입력" : "연차 자동 참고"}</div></button>`).join("") ||
+    `<div class="empty">직원이 없습니다</div>`}</div>`;
+}
+
+/* ---------------------------------------------------------------- 설정 */
+function vSettings() {
+  return `${recoveryBanner()}<div class="card"><div class="h2">백업 · 인계</div>
+    <div class="kv"><span>마지막 백업</span><b id="lastBackup">${S.lastBackup ? S.lastBackup.slice(0, 16).replace("T", " ") : "없음"}</b></div>
+    <button class="btn pri" data-act="backup">💾 백업 내보내기 (파일 1개)</button>
+    <button class="btn" data-act="restore">📂 백업 불러오기 (새 폰 · 인계받기)</button>
+    ${S.hasUndo ? `<button class="btn warn" data-act="undoRestore">↩ 복원 되돌리기 (복원 직전 상태로)</button>` : ""}
+    <div class="muted" style="margin-top:8px">사용자가 바뀌면: 백업 파일 + 이 앱 주소를 새 담당자에게 전달 → 새 폰에서 주소를 열고 [백업 불러오기]. 비밀번호는 새 폰에서 새로 정합니다.</div></div>
+  <div class="card"><div class="h2">엑셀 (CSV)</div>
+    <button class="btn" data-act="csvSummary">📊 집계표 내보내기 (${S.period.label})</button>
+    <button class="btn" data-act="csvRecords">📋 기록 전체 내보내기</button>
+    <button class="btn" data-act="csvImport">👥 명단 CSV 넣기</button>
+    <button class="btn" data-act="csvTemplate">명단 양식 받기 (이름·구분·성별·입사일)</button></div>
+  <div class="card"><div class="h2">기본 정보</div>
+    <label class="f">회사명 (화면 위쪽)</label><input class="inp" id="setCompany" value="${esc(S.company)}">
+    <label class="f">구분 목록 (쉼표로)</label><input class="inp" id="setCats" value="${esc(S.cats.join(", "))}">
+    <button class="btn pri" data-act="saveBasic">저장</button>
+    <button class="btn" data-act="changePin">🔒 비밀번호 바꾸기</button></div>
+  <div class="card"><div class="h2">상태</div>
+    <div class="kv"><span>앱 버전</span><b>${APP_VERSION}</b></div>
+    <div class="kv"><span>직원 / 기록</span><b>${S.emps.length}명 / ${S.recs.length}건</b></div>
+    <div class="kv"><span>저장 보호</span><b id="persist">확인 중</b></div>
+    <button class="btn" data-act="audit">수정 이력 보기</button></div>`;
+}
+
+/* ============================================================== 직원 등록 · 수정 */
+function empForm(id) {
+  const e = S.emps.find(x => x.id === id) || { name: "", category: "현장직", gender: "", hireDate: "", status: "재직", leaveMode: "auto", memo: "" };
+  sheet(`<h3>${id ? "직원 정보 수정" : "직원 추가"}</h3>
+  <label class="f">이름 *</label><input class="inp" id="eName" value="${esc(e.name)}">
+  <label class="f">구분</label><div class="seg" id="eCat">${S.cats.map(c => `<button class="${e.category === c ? "on" : ""}" data-v="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+  <label class="f">성별</label><div class="seg" id="eGender" style="grid-template-columns:1fr 1fr">${["남", "여"].map(g => `<button class="${e.gender === g ? "on" : ""}" data-v="${g}">${g}</button>`).join("")}</div>
+  <label class="f">입사일</label><input class="inp" type="date" id="eHire" value="${e.hireDate || ""}">
+  <label class="f">연차 계산</label><div class="seg" id="eMode" style="grid-template-columns:1fr 1fr">
+    <button class="${e.leaveMode !== "manual" ? "on" : ""}" data-v="auto">법정 참고값 자동</button><button class="${e.leaveMode === "manual" ? "on" : ""}" data-v="manual">직접 입력</button></div>
+  <div class="muted">아르바이트는 기본 '직접 입력' · 입사 1년 미만도 직접 입력</div>
+  <label class="f">메모</label><input class="inp" id="eMemo" value="${esc(e.memo || "")}">
+  ${id ? `<label class="f">상태</label><div class="seg" id="eStatus" style="grid-template-columns:1fr 1fr">${["재직", "퇴사"].map(s => `<button class="${e.status === s ? "on" : ""}" data-v="${s}">${s}</button>`).join("")}</div>
+  <label class="f">퇴사일 (퇴사 시)</label><input class="inp" type="date" id="eQuit" value="${e.terminationDate || ""}">` : ""}
+  <button class="btn pri" data-act="saveEmp" data-id="${id || ""}">저장</button><button class="btn" data-act="close">닫기</button>
+  ${id ? `<div class="muted" style="margin-top:8px">직원은 삭제하지 않고 '퇴사'로 바꿉니다 (기록 보존).</div>` : ""}`);
+  segBind("#eCat"); segBind("#eGender"); segBind("#eMode"); if (id) segBind("#eStatus");
+  $("#eCat").addEventListener("click", ev => { const b = ev.target.closest("button"); if (b && !id) { const m = b.dataset.v === "아르바이트" ? "manual" : "auto";
+    document.querySelectorAll("#eMode button").forEach(x => x.classList.toggle("on", x.dataset.v === m)); } });
+}
+function segBind(sel) { const g = $(sel); g.addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return;
+  g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); }); }
+const segVal = sel => { const b = document.querySelector(`${sel} button.on`); return b ? b.dataset.v : ""; };
+
+async function saveEmp(id) {
+  const name = $("#eName").value.trim();
+  if (!name) return toast("이름을 입력하세요");
+  const hire = $("#eHire").value;
+  if (hire && !isDate(hire)) return toast("입사일이 올바르지 않습니다");
+  const before = S.emps.find(x => x.id === id) || null;
+  const e = Object.assign({}, before || { id: uuid(), createdAt: nowISO(), status: "재직" }, {
+    name, category: segVal("#eCat") || "현장직", gender: segVal("#eGender"), hireDate: hire, leaveMode: segVal("#eMode") || "auto",
+    memo: $("#eMemo").value.trim(), updatedAt: nowISO() });
+  if (id) { e.status = segVal("#eStatus") || "재직"; e.terminationDate = $("#eQuit").value || ""; if (e.status === "퇴사" && !e.terminationDate) return toast("퇴사일을 입력하세요"); if (e.status === "재직") e.terminationDate = "";
+    if (e.hireDate && e.terminationDate && e.terminationDate < e.hireDate) return toast("퇴사일이 입사일보다 빠릅니다"); }
+  if (!id && S.emps.some(x => x.name === name && x.status !== "퇴사")) {
+    if (!(await ask(`같은 이름 '${name}' 직원이 이미 있습니다.\n다른 사람이면 그대로 추가합니다 (별도 번호로 구분).`, "추가"))) return;
+  }
+  await write([{ store: "employees", op: "put", value: e, before }], id ? "직원 수정" : "직원 추가");
+  await load(); closeSheet(); render(); toast("저장했습니다");
+}
+
+/* ============================================================== 총 연차 정하기 (참고값 + 확정값 · 사유 필수) */
+function totalForm(id) {
+  const e = S.emps.find(x => x.id === id), ref = legalRef(e, S.period), b = balanceRow(e, S.period);
+  sheet(`<h3>총 연차 · ${esc(e.name)}</h3><div class="muted">집계 ${S.period.label}</div>
+  <div class="kv"><span>법정 참고값</span><b>${ref.days == null ? ref.note : `${ref.days}일 (${ref.note})`}</b></div>
+  <div class="kv"><span>현재 확정값</span><b>${b && b.overrideDays != null ? b.overrideDays + "일" : "없음"}</b></div>
+  <label class="f">확정 일수 (0.5 단위)</label><input class="inp" id="tDays" type="number" step="0.5" min="0" max="40" inputmode="decimal" value="${b && b.overrideDays != null ? b.overrideDays : ref.days ?? ""}">
+  <label class="f">사유 * (예: 회사 확정 · 1년 미만 월별 발생 · 근로계약)</label><input class="inp" id="tReason" value="${esc((b && b.reason) || "")}">
+  <button class="btn pri" data-act="saveTotal" data-id="${id}">확정 저장</button>
+  ${b && b.overrideDays != null && ref.days != null ? `<button class="btn" data-act="clearTotal" data-id="${id}">확정 해제 (참고값 사용)</button>` : ""}
+  <button class="btn" data-act="close">닫기</button>`);
+}
+async function saveTotal(id, clear = false) {
+  const e = S.emps.find(x => x.id === id), ref = legalRef(e, S.period), b = balanceRow(e, S.period);
+  let days = null, reason = "";
+  if (!clear) {
+    days = parseFloat($("#tDays").value); reason = $("#tReason").value.trim();
+    if (!(days >= 0) || days > 40 || Math.round(days * 2) !== days * 2) return toast("0~40 사이, 0.5 단위로 입력하세요");
+    if (!reason) return toast("사유를 입력하세요");
+  }
+  const row = Object.assign({}, b || { id: uuid(), employeeId: id, periodStart: S.period.start, periodEnd: S.period.end, adjustmentDays: 0 },
+    { calculatedDays: ref.days, overrideDays: clear ? null : days, reason: clear ? "확정 해제" : reason, updatedAt: nowISO() });
+  await write([{ store: "leave_balances", op: "put", value: row, before: b }], clear ? "총 연차 확정 해제" : "총 연차 확정");
+  await load(); closeSheet(); render(); toast("저장했습니다");
+}
+
+/* ============================================================== 기록 추가 · 수정 */
+function recForm(recId, empId) {
+  const r = S.recs.find(x => x.id === recId) || { employeeId: empId || "", type: "연차", date: todayStr(), minutes: null, reason: "" };
+  const emps = S.emps.filter(e => e.status !== "퇴사" || e.id === r.employeeId);
+  sheet(`<h3>${recId ? "기록 수정" : "근태 기록 추가"}</h3>
+  <label class="f">직원 *</label><input class="inp" id="rFind" placeholder="이름 입력해서 찾기" autocomplete="off">
+  <select class="inp" id="rEmp" style="margin-top:6px"><option value="">— 선택 —</option>${emps.map(e => `<option value="${e.id}" ${e.id === r.employeeId ? "selected" : ""}>${esc(e.name)} (${esc(e.category)}${e.gender ? "·" + e.gender : ""})</option>`).join("")}</select>
+  <label class="f">종류</label><div class="seg" id="rType">${TYPES.map(t => `<button class="${r.type === t ? "on" : ""}" data-v="${t}">${t}</button>`).join("")}</div>
+  <label class="f">날짜 *</label><input class="inp" type="date" id="rDate" value="${r.date}">
+  <div id="minBox"><label class="f">시간 (분) *</label><input class="inp" type="number" id="rMin" min="1" max="1440" inputmode="numeric" value="${r.minutes || ""}">
+    <div class="quick">${[10, 30, 60, 90, 120, 240].map(m => `<button data-m="${m}">${m >= 60 ? m / 60 + "시간" : m + "분"}</button>`).join("")}</div></div>
+  <label class="f">사유</label><input class="inp" id="rReason" value="${esc(r.reason || "")}">
+  <button class="btn pri" data-act="saveRec" data-id="${recId || ""}">저장</button>
+  ${recId ? `<button class="btn warn" data-act="delRec" data-id="${recId}">삭제</button>` : ""}
+  <button class="btn" data-act="close">닫기</button>`);
+  segBind("#rType");
+  const sync = () => $("#minBox").classList.toggle("hidden", !TIME_TYPES.includes(segVal("#rType")));
+  $("#rType").addEventListener("click", sync); sync();
+  document.querySelectorAll(".quick button").forEach(b => b.addEventListener("click", () => { $("#rMin").value = b.dataset.m; }));
+  $("#rFind").addEventListener("input", ev => { const q = ev.target.value.trim(); if (!q) return;
+    const hit = emps.find(e => e.name.includes(q)); if (hit) $("#rEmp").value = hit.id; });
+}
+async function saveRec(recId) {
+  const empId = $("#rEmp").value, type = segVal("#rType"), date = $("#rDate").value, reason = $("#rReason").value.trim();
+  const e = S.emps.find(x => x.id === empId);
+  if (!e) return toast("직원을 선택하세요");
+  if (!isDate(date)) return toast("날짜를 확인하세요");
+  let minutes = null;
+  if (TIME_TYPES.includes(type)) {
+    const raw = $("#rMin").value.trim(), mv = Number(raw);
+    if (!raw || !Number.isInteger(mv) || mv < 1 || mv > 1440) return toast("시간은 1~1440 사이 정수(분)로 입력하세요");
+    minutes = mv;
+  }
+  const units = LEAVE_TYPES[type] || (type === "결근" ? 1 : null);
+  const others = S.recs.filter(x => x.employeeId === empId && x.date === date && x.id !== recId);
+  const dayTypes = ["연차", "반차", "결근"];
+  // 하루 연차 사용은 최대 1일 (반차 2번 = 1일까지)
+  const sameLeave = others.reduce((t, x) => t + (LEAVE_TYPES[x.type] || 0), 0);
+  if (LEAVE_TYPES[type] && sameLeave + units > 1) return ask(`${e.name} · ${date} 연차가 하루 1일을 넘습니다.\n(이미 ${sameLeave}일 + ${units}일) 저장할 수 없습니다.`, "확인", "");
+  const dups = others.filter(x => dayTypes.includes(x.type));
+  const halfPair = type === "반차" && dups.length === 1 && dups[0].type === "반차";       // 오전·오후 반차는 정상
+  if (dayTypes.includes(type) && dups.length && !halfPair) {
+    if (!reason) return ask(`${e.name} · ${date}에 이미 '${dups.map(x => x.type).join(", ")}' 기록이 있습니다.\n중복으로 저장하려면 사유 칸에 이유를 적으세요.`, "확인", "");
+    if (!(await ask(`${e.name} · ${date}에 이미 '${dups.map(x => x.type).join(", ")}' 기록이 있습니다.\n사유 '${reason}'로 중복 저장할까요?`, "그래도 저장"))) return;
+  }
+  if (LEAVE_TYPES[type]) {
+    const s = summary(e, periodOf(date), S.recs.filter(x => x.id !== recId));
+    if (s.remain != null && units > s.remain)
+      if (!(await ask(`잔여 연차 ${fmtN(s.remain)}일보다 많이 사용합니다 (${units}일).\n저장할까요?`, "저장"))) return;
+  }
+  if (e.terminationDate && date > e.terminationDate)
+    if (!(await ask(`퇴사일(${e.terminationDate}) 이후 날짜입니다.\n관리자 예외로 저장할까요?`, "예외 저장"))) return;
+  if (e.hireDate && date < e.hireDate)
+    if (!(await ask(`입사일(${e.hireDate}) 이전 날짜입니다. 저장할까요?`, "저장"))) return;
+  if (date > todayStr())
+    if (!(await ask(`미래 날짜(${date})입니다. 예정된 연차 등이면 저장하세요.`, "저장"))) return;
+  const before = S.recs.find(x => x.id === recId) || null;
+  const rec = Object.assign({}, before || { id: uuid(), createdAt: nowISO() }, { employeeId: empId, date, type, units, minutes, reason, updatedAt: nowISO() });
+  await write([{ store: "attendance", op: "put", value: rec, before }], recId ? "기록 수정" : "기록 추가");
+  if (!periodContains(S.period, date)) S.period = periodOf(date);
+  await load(); closeSheet(); render(); toast(`${e.name} · ${type} 저장`);
+}
+const periodContains = (p, d) => d >= p.start && d <= p.end;
+async function delRec(id) {
+  const r = S.recs.find(x => x.id === id), e = S.emps.find(x => x.id === r.employeeId);
+  if (!(await ask(`${e ? e.name : ""} · ${r.date} · ${r.type} 기록을 삭제할까요?\n(수정 이력에 남습니다)`, "삭제", "취소", true))) return;
+  await write([{ store: "attendance", op: "delete", key: id, before: r }], "기록 삭제");
+  await load(); closeSheet(); render(); toast("삭제했습니다");
+}
+
+/* ============================================================== 백업 · 복원 */
+function stamp() { const d = new Date(); return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`; }
+/** 5개 저장소를 하나의 읽기 전용 트랜잭션에서 같은 시점으로 읽기 */
+function snapshot() {
+  return new Promise((res, rej) => {
+    const t = DB.transaction(STORES, "readonly"), out = {};
+    STORES.forEach(n => { const rq = t.objectStore(n).getAll(); rq.onsuccess = () => { out[n] = rq.result; }; });
+    t.oncomplete = () => res(out); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error("읽기 취소"));
+  });
+}
+function exportSettings(rows) { const o = {}; rows.forEach(r => { if (!LOCAL_ONLY.includes(r.key) && r.key in SETTING_KEYS) o[r.key] = r.value; }); return o; }
+async function buildBackup() {
+  const snap = await snapshot();
+  const { employees, attendance, leave_balances, audit_logs } = snap;
+  const settings = exportSettings(snap.settings);
+  const data = { employees, attendance, leave_balances, settings, audit_logs };
+  return { format: BACKUP_FORMAT, schemaVersion: SCHEMA_VERSION, exportedAt: nowISO(), appVersion: APP_VERSION,
+    counts: { employees: employees.length, attendance: attendance.length, leave_balances: leave_balances.length },
+    data, integrity: { algorithm: "SHA-256", checksum: sha256(JSON.stringify(data)) } };
+}
+function download(name, text, type) {
+  const blob = new Blob([text], { type }), url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.__lastDownload = { name, text };
+  return blob;
+}
+async function exportBackup(label = "백업") {
+  const b = await buildBackup(), name = `인원현황_${label}_${stamp()}.json`, text = JSON.stringify(b, null, 1);
+  const blob = download(name, text, "application/json");
+  return { name, blob, backup: b };
+}
+async function doBackup() {
+  const r = await exportBackup();
+  await setS("lastBackup", nowISO()); await load(); render();
+  const file = new File([r.blob], r.name, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (await ask(`백업 파일을 저장했습니다 (다운로드 폴더).\n${r.name}\n\n카카오톡·메일로 보내 둘까요?`, "보내기", "닫기"))
+      try { await navigator.share({ files: [file], title: "인원현황 백업" }); } catch (_) { /* 사용자가 취소 */ }
+  } else toast(`백업 저장: ${r.name}`);
+}
+/** 백업 파일 검사 → { ok, why, backup } · 체크섬은 손상 확인용이므로 내용(필드·형식·범위·중복)도 모두 검사 */
+const isObj = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const isStr = (v, max = 200) => typeof v === "string" && v.length <= max;
+const optDate = v => v === undefined || v === null || v === "" || isDate(v);
+function validateBackup(text) {
+  let b;
+  try { b = JSON.parse(text); } catch (_) { return { ok: false, why: "JSON 파일이 아니거나 손상되었습니다." }; }
+  try {
+    if (!isObj(b) || b.format !== BACKUP_FORMAT) return { ok: false, why: "인원현황 백업 파일이 아닙니다." };
+    if (b.schemaVersion !== SCHEMA_VERSION) return { ok: false, why: `지원하지 않는 버전(${b.schemaVersion})입니다. 이 앱은 버전 ${SCHEMA_VERSION}만 불러옵니다.` };
+    const d = b.data;
+    if (!isObj(d) || !Array.isArray(d.employees) || !Array.isArray(d.attendance) || !Array.isArray(d.leave_balances) ||
+        !isObj(d.settings) || !Array.isArray(d.audit_logs)) return { ok: false, why: "필수 자료(직원·기록·연차·설정·이력)가 빠졌거나 형식이 틀립니다." };
+    if (!isObj(b.integrity) || b.integrity.checksum !== sha256(JSON.stringify(d))) return { ok: false, why: "체크섬이 맞지 않습니다 (파일이 손상되었거나 수정됨)." };
+    // 직원
+    const ids = new Set();
+    for (const e of d.employees) {
+      const nm = isObj(e) && isStr(e.name, 50) ? e.name : "?";
+      if (!isObj(e) || !isStr(e.id, 64) || !e.id) return { ok: false, why: "직원 ID가 없는 자료가 있습니다." };
+      if (ids.has(e.id)) return { ok: false, why: `직원 ID 중복: ${nm}` };
+      if (!isStr(e.name, 50) || !e.name.trim()) return { ok: false, why: "이름이 없는 직원이 있습니다." };
+      if (!isStr(e.category, 30) || !e.category) return { ok: false, why: `구분 오류: ${nm}` };
+      if (!["", "남", "여", undefined].includes(e.gender)) return { ok: false, why: `성별 오류: ${nm}` };
+      if (!optDate(e.hireDate) || !optDate(e.terminationDate)) return { ok: false, why: `입사일·퇴사일 오류: ${nm}` };
+      if (e.hireDate && e.terminationDate && e.terminationDate < e.hireDate) return { ok: false, why: `퇴사일이 입사일보다 빠름: ${nm}` };
+      if (!["재직", "퇴사"].includes(e.status)) return { ok: false, why: `재직 상태 오류: ${nm}` };
+      if (e.leaveMode !== undefined && !["auto", "manual"].includes(e.leaveMode)) return { ok: false, why: `연차 계산 방식 오류: ${nm}` };
+      if (e.memo !== undefined && !isStr(e.memo, 300)) return { ok: false, why: `메모 오류: ${nm}` };
+      ids.add(e.id);
+    }
+    // 근태 기록
+    const rids = new Set();
+    for (const r of d.attendance) {
+      if (!isObj(r) || !isStr(r.id, 64) || !r.id || rids.has(r.id)) return { ok: false, why: "기록 ID가 없거나 중복된 기록이 있습니다." };
+      rids.add(r.id);
+      if (!ids.has(r.employeeId)) return { ok: false, why: `연결된 직원이 없는 기록이 있습니다 (${r.date})` };
+      if (!isDate(r.date) || !TYPES.includes(r.type)) return { ok: false, why: `기록 날짜·종류 오류: ${r.date} ${r.type}` };
+      const expU = LEAVE_TYPES[r.type] ?? (r.type === "결근" ? 1 : null);
+      if ((r.units ?? null) !== expU && !(expU === null && r.units === undefined)) return { ok: false, why: `일수 오류: ${r.date} ${r.type} (${r.units})` };
+      if (TIME_TYPES.includes(r.type)) { if (!Number.isInteger(r.minutes) || r.minutes < 1 || r.minutes > 1440) return { ok: false, why: `시간(분) 오류: ${r.date} ${r.type} (${r.minutes})` }; }
+      else if (r.minutes !== null && r.minutes !== undefined) return { ok: false, why: `시간이 들어갈 수 없는 기록: ${r.date} ${r.type}` };
+      if (r.reason !== undefined && r.reason !== null && !isStr(r.reason, 200)) return { ok: false, why: `사유 오류: ${r.date}` };
+    }
+    // 직원·날짜별 연차 합계 1일 이하 (반차 2번까지)
+    const dayLeave = {};
+    for (const r of d.attendance) if (LEAVE_TYPES[r.type]) { const k = r.employeeId + "|" + r.date; dayLeave[k] = (dayLeave[k] || 0) + r.units; if (dayLeave[k] > 1) return { ok: false, why: `하루 연차 1일 초과: ${r.date}` }; }
+    // 연차 (기간별)
+    const bids = new Set(), bkey = new Set();
+    for (const x of d.leave_balances) {
+      if (!isObj(x) || !isStr(x.id, 64) || !x.id || bids.has(x.id)) return { ok: false, why: "연차 자료 ID가 없거나 중복되었습니다." };
+      bids.add(x.id);
+      if (!ids.has(x.employeeId)) return { ok: false, why: "연결된 직원이 없는 연차 자료가 있습니다." };
+      if (!isDate(x.periodStart) || x.periodStart.slice(5) !== "07-01" || x.periodEnd !== periodOf(x.periodStart).end) return { ok: false, why: `연차 기간 오류: ${x.periodStart}~${x.periodEnd}` };
+      const k = x.employeeId + "|" + x.periodStart; if (bkey.has(k)) return { ok: false, why: `같은 직원·기간 연차 자료 중복: ${x.periodStart}` }; bkey.add(k);
+      for (const f of ["overrideDays", "calculatedDays"]) { const v = x[f];
+        if (v !== null && v !== undefined && !(typeof v === "number" && v >= 0 && v <= 40 && Number.isInteger(v * 2))) return { ok: false, why: `연차 일수 오류: ${x.periodStart} ${f}=${v}` }; }
+      if (x.overrideDays != null && !(isStr(x.reason, 200) && x.reason.trim())) return { ok: false, why: `확정 연차에 사유가 없습니다: ${x.periodStart}` };
+    }
+    // 설정 (허용 항목만)
+    for (const [k, v] of Object.entries(d.settings)) {
+      if (!(k in SETTING_KEYS)) return { ok: false, why: `알 수 없는 설정 항목: ${k}` };
+      if (SETTING_KEYS[k] === "array" ? !(Array.isArray(v) && v.every(x => isStr(x, 30))) : !(v === null || isStr(v, 100))) return { ok: false, why: `설정 값 오류: ${k}` };
+    }
+    // 수정 이력
+    const aids = new Set();
+    for (const l of d.audit_logs) {
+      if (!isObj(l) || !isStr(l.id, 64) || !l.id || aids.has(l.id)) return { ok: false, why: "수정 이력 ID 오류" };
+      if (!isStr(l.timestamp, 40) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(l.timestamp) || isNaN(Date.parse(l.timestamp)) || !isDate(l.timestamp.slice(0, 10)))
+        return { ok: false, why: `수정 이력 시각 오류: ${String(l.timestamp).slice(0, 25)}` };
+      if (!isStr(l.action, 60) || !l.action || !isStr(l.store, 30) || !l.store) return { ok: false, why: "수정 이력 필수 항목(작업·저장소) 누락" };
+      aids.add(l.id);
+    }
+    return { ok: true, backup: b };
+  } catch (ex) { return { ok: false, why: `검사 중 오류: ${ex && ex.message}` }; }
+}
+/** 한 트랜잭션으로 전부 교체 (실패하면 기존 자료 그대로) */
+function replaceAll(d, opts = {}) {
+  return new Promise((res, rej) => {
+    const t = DB.transaction(STORES, "readwrite");
+    t.oncomplete = () => res(true); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error("복원 취소 - 기존 자료 그대로"));
+    if (opts.rollback && window.__failRollback) { try { t.abort(); } catch (_) {} return; }       // 시험용 고장 주입
+    try {
+      for (const s of ["employees", "attendance", "leave_balances", "audit_logs"]) t.objectStore(s).clear();
+      const st = t.objectStore("settings");
+      // 이 기기 비밀번호는 유지, 나머지 설정만 바꿈
+      st.openCursor().onsuccess = ev => { try {
+        const c = ev.target.result;
+        if (c) { if (!LOCAL_ONLY.includes(c.key)) c.delete(); c.continue(); return; }
+        Object.entries(d.settings || {}).forEach(([k, v]) => { if (!LOCAL_ONLY.includes(k)) st.put({ key: k, value: v }); });
+        let n = 0;
+        for (const e of d.employees) t.objectStore("employees").put(e);
+        for (const r of d.attendance) { t.objectStore("attendance").put(r); if (window.__failRestoreAt && ++n >= window.__failRestoreAt) { t.abort(); return; } }
+        for (const x of d.leave_balances) t.objectStore("leave_balances").put(x);
+        for (const a of d.audit_logs) t.objectStore("audit_logs").put(a);
+        if (opts.log !== false) t.objectStore("audit_logs").put({ id: uuid(), action: opts.action || "백업 복원", store: "all", targetId: null, before: null,
+          after: { employees: d.employees.length, attendance: d.attendance.length }, timestamp: nowISO() });
+      } catch (ex) { logLocalError("복원", ex); try { t.abort(); } catch (_) {} } };
+    } catch (ex) { try { t.abort(); } catch (_) {} rej(ex); }
+  });
+}
+/** 저장된 자료가 백업 내용과 같은지 (직원·기록·연차·설정·이력 전부) */
+const byId = arr => JSON.stringify(arr.slice().sort((x, y) => String(x.id).localeCompare(String(y.id))));
+async function verifyAgainst(d, extraLogs = 1) {
+  if (window.__failVerify > 0) { window.__failVerify--; throw new Error("검증 읽기 실패 (시험)"); }   // 시험용 고장 주입
+  const snap = await snapshot(), probs = [];
+  for (const n of ["employees", "attendance", "leave_balances"]) if (byId(snap[n]) !== byId(d[n])) probs.push(n);
+  const set = exportSettings(snap.settings), want = {};
+  Object.entries(d.settings || {}).forEach(([k, v]) => { if (k in SETTING_KEYS) want[k] = v; });
+  if (JSON.stringify(Object.keys(set).sort().map(k => [k, set[k]])) !== JSON.stringify(Object.keys(want).sort().map(k => [k, want[k]]))) probs.push("settings");
+  const have = new Map(snap.audit_logs.map(l => [l.id, JSON.stringify(l)]));
+  if (!d.audit_logs.every(l => have.get(l.id) === JSON.stringify(l)) || snap.audit_logs.length !== d.audit_logs.length + extraLogs) probs.push("audit_logs");
+  return probs;
+}
+async function restoreFromText(text, opts = {}) {
+  const v = validateBackup(text);
+  if (!v.ok) { await ask(`불러올 수 없습니다.\n${v.why}\n\n현재 자료는 그대로입니다.`, "확인", ""); return false; }
+  const b = v.backup, c = { e: b.data.employees.length, a: b.data.attendance.length };
+  if (!(await ask(`백업 ${String(b.exportedAt).slice(0, 16).replace("T", " ")}\n직원 ${c.e}명 · 기록 ${c.a}건\n\n지금 이 폰의 자료(직원 ${S.emps.length}명 · 기록 ${S.recs.length}건)를 이 백업으로 바꿉니다.\n먼저 현재 자료를 안전 백업합니다 (폰 안 + 파일).`, "다음"))) return false;
+  // 1) 안전 백업: 폰 안(되돌리기용)에 먼저 저장 - 실패하면 복원 중단
+  let safety;
+  try {
+    safety = await buildBackup();
+    await write([{ store: "settings", op: "put", value: { key: "preRestoreSnapshot", value: { savedAt: nowISO(), backup: safety } } }], "복원 전 안전 백업");
+    const chk = await getS("preRestoreSnapshot");
+    if (!chk || chk.backup.integrity.checksum !== safety.integrity.checksum) throw new Error("안전 백업 확인 실패");
+  } catch (ex) { await ask(`안전 백업을 만들지 못해 복원을 중단했습니다. 현재 자료는 그대로입니다.\n(${ex && ex.message})`, "확인", ""); return false; }
+  // 2) 안전 백업 파일도 내려받기 (다른 곳 보관용)
+  if (S.emps.length || S.recs.length) {
+    let fname = "";
+    try { fname = (await exportBackup("복원전_안전백업")).name; } catch (_) { fname = "(파일 저장 실패 - 폰 안 안전 백업은 있음)"; }
+    if (!opts.skipConfirm && !(await ask(`안전 백업을 했습니다.\n· 폰 안: 설정 → [복원 되돌리기] (같은 브라우저 안이라 브라우저 자료가 지워지면 함께 지워짐)\n· 파일: ${fname}\n\n⚠ 파일을 카톡 '나에게 보내기' 등 폰 밖에 따로 보관한 뒤 복원하세요.\n폰 밖에 보관했나요?`, "보관했음 · 복원", "취소"))) return false;
+  }
+  // 3) 한 트랜잭션으로 교체 (실패하면 IndexedDB가 전부 취소 → 기존 자료 그대로)
+  try { await replaceAll(b.data); }
+  catch (ex) { await ask(`복원 중 오류로 모두 취소했습니다. 현재 자료는 그대로입니다.\n(${ex && ex.message || ex})`, "확인", ""); await load(); render(); return false; }
+  // 4) 전체 정합성 검사 - 검사가 끝나야만 성공. 차이·검사 오류 → 안전 백업으로 되돌리고, 되돌림도 다시 검사
+  if (window.__tamperAfterReplace) await write([{ store: "employees", op: "put", value: { id: uuid(), name: "시험용 변조", category: "현장직", status: "재직" } }], "시험", { force: true });
+  if (window.__tamperAudit) await tamperOneAudit();
+  let probs;
+  try { probs = await verifyAgainst(b.data, window.__tamperAfterReplace ? 2 : 1); }
+  catch (ex) { probs = [`검사 실패: ${ex && ex.message}`]; }
+  if (probs.length) {
+    const back = await rollbackTo(safety, `복원 후 검사 불일치 (${probs.join(", ")})`);
+    await load(); render();
+    if (back.ok) await ask(`복원 후 검사에서 문제가 있어 복원 전 자료로 되돌렸고, 되돌린 자료도 검사해 일치를 확인했습니다.\n(문제: ${probs.join(", ")})`, "확인", "");
+    else await enterRecovery(`복원 후 검사 문제(${probs.join(", ")})로 되돌리려 했지만 실패했습니다: ${back.why}`);
+    return false;
+  }
+  await setS("recoveryNeeded", null); S.recovery = null;
+  await load(); render();
+  await ask(`복원을 마쳤습니다.\n직원 ${S.emps.length}명 · 기록 ${S.recs.length}건 · 연차 ${S.bals.length}건 · 설정 · 이력 모두 백업과 일치`, "확인", "");
+  return true;
+}
+/** 안전 백업으로 되돌리고 결과를 다시 검사 → { ok, why } */
+async function rollbackTo(safety, why) {
+  try { await replaceAll(safety.data, { action: "복원 실패 → 자동 되돌림", rollback: true }); }
+  catch (ex) { return { ok: false, why: `되돌림 저장 실패 (${ex && ex.message || ex})` }; }
+  try { const p = await verifyAgainst(safety.data, 1); return p.length ? { ok: false, why: `되돌린 자료 검사 불일치 (${p.join(", ")})` } : { ok: true }; }
+  catch (ex) { return { ok: false, why: `되돌린 자료 검사 실패 (${ex && ex.message})` }; }
+}
+/** 복구 필요 상태: 저장 제한 + 안내 (다시 열어도 유지) */
+async function enterRecovery(why) {
+  S.recovery = { why, at: nowISO() };
+  try { await write([{ store: "settings", op: "put", value: { key: "recoveryNeeded", value: S.recovery } }], "복구 필요", { force: true }); } catch (_) {}
+  render();
+  await ask(`⚠ 자료 복구가 필요합니다.\n${why}\n\n지금 화면의 자료가 정확하지 않을 수 있어 새 입력·수정을 막았습니다.\n\n복구 방법:\n① 설정 → [↩ 복원 되돌리기] (폰 안 안전 백업)\n② 설정 → [백업 불러오기]로 따로 보관한 백업 파일 (카톡·다운로드 폴더의 '복원전_안전백업' 또는 최근 백업)`, "확인", "");
+}
+async function tamperOneAudit() {           // 시험용: 이력 1건의 내용만 바꿈 (ID·건수 그대로)
+  const logs = await all("audit_logs"); const l = logs.find(x => x.action !== "백업 복원"); if (!l) return;
+  await new Promise((res, rej) => { const t = DB.transaction("audit_logs", "readwrite"); t.objectStore("audit_logs").put(Object.assign({}, l, { action: l.action + "(변조)" })); t.oncomplete = res; t.onerror = rej; });
+}
+async function undoRestore() {
+  const snap = await getS("preRestoreSnapshot");
+  if (!snap) return toast("되돌릴 안전 백업이 없습니다");
+  const v = validateBackup(JSON.stringify(snap.backup));
+  if (!v.ok) return ask(`안전 백업이 손상되어 되돌릴 수 없습니다.\n${v.why}`, "확인", "");
+  if (!(await ask(`${snap.savedAt.slice(0, 16).replace("T", " ")} 복원 직전 상태로 되돌립니다.\n(직원 ${snap.backup.data.employees.length}명 · 기록 ${snap.backup.data.attendance.length}건)`, "되돌리기", "취소", true))) return;
+  const back = await rollbackTo(snap.backup, "복원 되돌리기");
+  await load(); render();
+  if (!back.ok) return enterRecovery(`[복원 되돌리기] 실패: ${back.why}`);
+  await setS("recoveryNeeded", null); S.recovery = null; render();
+  toast("복원 전 상태로 되돌리고 검사까지 마쳤습니다");
+}
+function pickFile(accept) {
+  return new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = accept;
+    i.onchange = () => { const f = i.files[0]; if (!f) return res(null); const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsText(f, "utf-8"); };
+    i.click(); });
+}
+
+/* ============================================================== CSV */
+const csvCell = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+const toCSV = rows => "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+function summaryCSV() {
+  const rows = [["집계기간", "이름", "구분", "성별", "입사일", "상태", "총연차", "총연차구분", "사용", "잔여", "조퇴(회)", "조퇴(분)", "지각(회)", "지각(분)", "외출(회)", "외출(분)", "결근(일)"]];
+  for (const e of S.emps) { const s = summary(e, S.period);
+    rows.push([S.period.label, e.name, e.category, e.gender, e.hireDate, e.status, s.total ?? "", s.src, s.used, s.remain ?? "", s.early, s.earlyMin, s.late, s.lateMin, s.out, s.outMin, s.absent]); }
+  return toCSV(rows);
+}
+function recordsCSV() {
+  const rows = [["날짜", "요일", "이름", "구분", "성별", "종류", "일수", "시간(분)", "사유"]];
+  S.recs.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(r => { const e = S.emps.find(x => x.id === r.employeeId) || {};
+    rows.push([r.date, WEEK[dow(r.date)], e.name, e.category, e.gender, r.type, r.units ?? "", r.minutes ?? "", r.reason]); });
+  return toCSV(rows);
+}
+/** 명단 CSV → { add, dup(정확히 같음: 건너뜀), similar(이름·구분 같고 입사일 다름/없음: 확인 후 추가), bad } */
+function planRoster(text) {
+  const rows = parseCSV(text); if (!rows.length) return { add: [], dup: [], similar: [], bad: ["빈 파일"] };
+  const h = rows[0].map(x => x.trim()), ix = k => h.indexOf(k);
+  if (ix("이름") < 0) return { add: [], dup: [], similar: [], bad: ["첫 줄에 '이름' 제목이 없습니다 (양식 받기 참고)"] };
+  const add = [], dup = [], similar = [], bad = [];
+  const exact = new Set(S.emps.map(e => `${e.name}|${e.category}|${e.hireDate || ""}`));
+  const nameCat = new Set(S.emps.map(e => `${e.name}|${e.category}`));
+  rows.slice(1).forEach((r, i) => {
+    const name = (r[ix("이름")] || "").trim(); if (!name) return;
+    if (name.length > 50) { bad.push(`${i + 2}행: 이름이 너무 깁니다`); return; }
+    const cat = (ix("구분") >= 0 ? r[ix("구분")] : "").trim() || "현장직";
+    const rawG = (ix("성별") >= 0 ? r[ix("성별")] : "").trim();
+    const g = { "남": "남", "남자": "남", "남성": "남", "M": "남", "여": "여", "여자": "여", "여성": "여", "F": "여", "": "" }[rawG];
+    if (g === undefined) { bad.push(`${i + 2}행 ${name}: 성별 '${rawG}' (남·여만 가능)`); return; }
+    const rawD = ix("입사일") >= 0 ? (r[ix("입사일")] || "").trim() : "", d = normDate(rawD);
+    if (rawD && !d) { bad.push(`${i + 2}행 ${name}: 입사일 '${rawD}' 형식 오류`); return; }
+    const k = `${name}|${cat}|${d}`, nc = `${name}|${cat}`;
+    const emp = { id: uuid(), name, category: cat, gender: g, hireDate: d, status: "재직", leaveMode: cat === "아르바이트" ? "manual" : "auto",
+      memo: "", createdAt: nowISO(), updatedAt: nowISO() };
+    if (exact.has(k)) { dup.push(`${name} (${cat}${d ? " · " + d : ""})`); return; }
+    if (nameCat.has(nc)) similar.push(emp); else add.push(emp);
+    exact.add(k); nameCat.add(nc);
+  });
+  return { add, dup, similar, bad };
+}
+async function importRoster(text) {
+  const p = planRoster(text);
+  const msg = `추가 ${p.add.length}명${p.dup.length ? `\n똑같은 직원이라 건너뜀 ${p.dup.length}명: ${p.dup.slice(0, 8).join(", ")}${p.dup.length > 8 ? " …" : ""}` : ""}` +
+    `${p.similar.length ? `\n확인 필요 ${p.similar.length}명 (이름·구분 같고 입사일 다름): ${p.similar.slice(0, 6).map(e => e.name).join(", ")}` : ""}` +
+    `${p.bad.length ? `\n오류 ${p.bad.length}건: ${p.bad.slice(0, 5).join(" / ")}` : ""}`;
+  if (!p.add.length && !p.similar.length) { await ask(`추가할 직원이 없습니다.\n${msg}`, "확인", ""); return p; }
+  if (p.add.length) { if (!(await ask(`명단 CSV\n${msg}\n\n새 직원 ${p.add.length}명을 추가할까요?`, "추가"))) return p; }
+  if (p.similar.length && await ask(`이름·구분이 같은 직원이 이미 있습니다 (입사일 다름):\n${p.similar.map(e => `${e.name} ${e.hireDate || "(입사일 없음)"}`).join("\n")}\n\n다른 사람이면 추가하세요.`, "다른 사람 · 추가", "건너뜀"))
+    p.add = p.add.concat(p.similar);
+  if (!p.add.length) return p;
+  const newCats = [...new Set(p.add.map(e => e.category))].filter(c => !S.cats.includes(c));
+  const ops = p.add.map(e => ({ store: "employees", op: "put", value: e }));
+  if (newCats.length) ops.push({ store: "settings", op: "put", value: { key: "categories", value: S.cats.concat(newCats) } });
+  try { await write(ops, "명단 CSV 추가"); }                      // 직원 추가 + 새 구분 = 한 트랜잭션
+  catch (ex) { await ask(`명단을 저장하지 못해 전부 취소했습니다 (일부만 들어가지 않음).\n(${ex && ex.message})`, "확인", ""); await load(); render(); p.add = []; return p; }
+  await load(); render(); toast(`${p.add.length}명 추가`); return p;
+}
+
+/* ============================================================== 비밀번호 (화면 잠금 - 자료 암호화 아님) */
+let pinBuf = "", pinMode = "check", pinFirst = "";
+const LOCK_MIN = 5, MAX_FAIL = 5;
+function keypad() {
+  $("#keys").innerHTML = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map(k => k ? `<button data-k="${k}">${k}</button>` : "<span></span>").join("");
+}
+function showDots() { document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", i < pinBuf.length)); }
+async function showLock(mode) {
+  pinMode = mode; pinBuf = ""; pinFirst = ""; showDots(); $("#lockErr").textContent = "";
+  $("#lockTitle").textContent = mode === "set" ? "새 비밀번호 4자리" : mode === "verify" ? "현재 비밀번호 확인" : "비밀번호 4자리";
+  $("#lock").classList.remove("hidden");
+  $("#lockCancel").classList.toggle("hidden", mode !== "verify");
+  if (mode !== "set") await lockedMsg();
+}
+async function lockedMsg() {
+  const until = await getS("pinLockUntil", 0);
+  if (until > Date.now()) { $("#lockErr").textContent = `${MAX_FAIL}회 틀려 ${Math.ceil((until - Date.now()) / 60000)}분 동안 잠겼습니다`; return true; }
+  return false;
+}
+async function pinKey(k) {
+  try { await pinKeyInner(k); }
+  catch (ex) { logLocalError("비밀번호", ex); pinBuf = ""; pinFirst = ""; showDots();
+    $("#lockErr").textContent = "저장소 오류로 비밀번호를 처리하지 못했습니다. 앱을 닫았다가 다시 여세요."; }
+}
+async function pinKeyInner(k) {
+  if (k === "⌫") { pinBuf = pinBuf.slice(0, -1); showDots(); return; }
+  if (pinBuf.length >= 4) return;
+  pinBuf += k; showDots();
+  if (pinBuf.length < 4) return;
+  const v = pinBuf; pinBuf = "";
+  if (pinMode === "set") {
+    if (!pinFirst) { pinFirst = v; $("#lockTitle").textContent = "한 번 더 입력"; showDots(); return; }
+    if (pinFirst !== v) { pinFirst = ""; $("#lockTitle").textContent = "새 비밀번호 4자리"; $("#lockErr").textContent = "두 번 입력이 다릅니다"; showDots(); return; }
+    const salt = uuid();
+    await write([{ store: "settings", op: "put", value: { key: "pinSalt", value: salt } }, { store: "settings", op: "put", value: { key: "pinHash", value: sha256(salt + v) } },
+      { store: "settings", op: "put", value: { key: "pinFail", value: 0 } }], "비밀번호");
+    if ((await getS("pinHash")) !== sha256(salt + v)) { $("#lockErr").textContent = "저장 실패 - 다시 입력하세요"; pinFirst = ""; return; }
+    $("#lock").classList.add("hidden"); $("#lockCancel").classList.add("hidden"); toast("비밀번호를 정했습니다");
+    if (!started) unlocked();
+    return;
+  }
+  if (await lockedMsg()) { showDots(); return; }
+  const salt = await getS("pinSalt"), hash = await getS("pinHash");
+  if (sha256(salt + v) === hash) {
+    await setS("pinFail", 0);
+    if (pinMode === "verify") { pinMode = "set"; pinFirst = ""; $("#lockTitle").textContent = "새 비밀번호 4자리"; $("#lockErr").textContent = ""; showDots(); return; }
+    $("#lock").classList.add("hidden"); unlocked(); return;
+  }
+  const fail = (await getS("pinFail", 0)) + 1;
+  await setS("pinFail", fail);
+  if (fail >= MAX_FAIL) { await setS("pinLockUntil", Date.now() + LOCK_MIN * 60000); await setS("pinFail", 0); await lockedMsg(); }
+  else $("#lockErr").textContent = `비밀번호가 틀렸습니다 (${fail}/${MAX_FAIL})`;
+  showDots();
+}
+let started = false;
+async function unlocked() { if (started) return; started = true; await load(); render(); }
+
+/* ============================================================== 이벤트 */
+document.addEventListener("click", ev => { onClick(ev).catch(ex => { logLocalError("동작", ex); if (!ex || !ex.blocked) toast(`처리하지 못했습니다: ${ex && ex.message || ex}`); }); });
+async function onClick(ev) {
+  const k = ev.target.closest("#keys [data-k]"); if (k) return pinKey(k.dataset.k);
+  const g = ev.target.closest("[data-go]"); if (g) { S.q = ""; return go(g.dataset.go); }
+  const a = ev.target.closest("[data-act]"); if (!a) return;
+  const id = a.dataset.id, v = a.dataset.v;
+  switch (a.dataset.act) {
+    case "open": return go("detail", { detail: id });
+    case "back": return go("home");
+    case "cat": S.cat = v; return render();
+    case "gender": S.gender = v; return render();
+    case "recType": S.recType = v; return render();
+    case "pPrev": S.period = shiftPeriod(S.period, -1); return render();
+    case "pNext": S.period = shiftPeriod(S.period, 1); return render();
+    case "toggleQuit": S.showQuit = !S.showQuit; return render();
+    case "editEmp": return empForm(id);
+    case "saveEmp": return saveEmp(id);
+    case "editTotal": return totalForm(id);
+    case "saveTotal": return saveTotal(id);
+    case "clearTotal": return saveTotal(id, true);
+    case "addRecord": return recForm(null, id || (S.view === "detail" ? S.detail : ""));
+    case "editRec": return recForm(id);
+    case "saveRec": return saveRec(id);
+    case "delRec": return delRec(id);
+    case "close": return closeSheet();
+    case "backup": return doBackup();
+    case "restore": { const t = await pickFile(".json,application/json"); if (t) await restoreFromText(t); return; }
+    case "csvSummary": download(`인원현황_집계_${S.period.start.slice(0, 4)}_${stamp()}.csv`, summaryCSV(), "text/csv"); return toast("집계표 CSV 저장");
+    case "csvRecords": download(`인원현황_기록_${stamp()}.csv`, recordsCSV(), "text/csv"); return toast("기록 CSV 저장");
+    case "csvTemplate": download("인원현황_명단양식.csv", toCSV([["이름", "구분", "성별", "입사일"], ["홍길동", "현장직", "남", "2020-03-02"], ["김영희", "아르바이트", "여", "2026-05-11"]]), "text/csv"); return;
+    case "csvImport": { const t = await pickFile(".csv,text/csv"); if (t) await importRoster(t); return; }
+    case "saveBasic": {
+      const cats = $("#setCats").value.split(",").map(x => x.trim()).filter(Boolean);
+      for (const c of S.emps.map(e => e.category)) if (!cats.includes(c)) cats.push(c);
+      await setS("company", $("#setCompany").value.trim() || "경주법주"); await setS("categories", cats.length ? cats : DEFAULT_CATS);
+      await load(); render(); return toast("저장했습니다");
+    }
+    case "changePin": return showLock("verify");
+    case "cancelPin": $("#lock").classList.add("hidden"); $("#lockCancel").classList.add("hidden"); return;
+    case "undoRestore": return undoRestore();
+    case "audit": {
+      const logs = (await all("audit_logs")).sort((x, y) => y.timestamp.localeCompare(x.timestamp)).slice(0, 60);
+      return sheet(`<h3>수정 이력 (최근 60건)</h3>${logs.map(l => `<div class="kv"><span>${l.timestamp.slice(0, 16).replace("T", " ")}</span><b>${esc(l.action)}${l.after && l.after.name ? " · " + esc(l.after.name) : l.after && l.after.date ? " · " + l.after.date + " " + (l.after.type || "") : ""}</b></div>`).join("") || "<div class='empty'>없음</div>"}<button class="btn" data-act="close">닫기</button>`);
+    }
+  }
+}
+document.addEventListener("input", ev => { if (ev.target.id === "q") { S.q = ev.target.value; const pos = ev.target.selectionStart; render(); const q = $("#q"); if (q) { q.focus(); q.setSelectionRange(pos, pos); } } });
+
+/* ============================================================== 시작 */
+async function start() {
+  keypad();
+  try { DB = await openDB(); }
+  catch (ex) { $("#view").innerHTML = `<div class="banner">이 브라우저에서 저장소를 열 수 없습니다.\n크롬으로 여세요.\n(${esc(ex && ex.message)})</div>`; return; }
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().then(p => { S.persisted = p; const el = $("#persist"); if (el) el.textContent = p ? "켜짐 (자동 삭제 안 됨)" : "기본"; }).catch(() => {});
+  }
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+  const hash = await getS("pinHash");
+  await showLock(hash ? "check" : "set");      // 비밀번호를 정하거나 맞히기 전에는 자료를 읽지 않음
+  const obs = new MutationObserver(() => { const el = $("#persist"); if (el && S.persisted != null) el.textContent = S.persisted ? "켜짐 (자동 삭제 안 됨)" : "기본"; });
+  obs.observe($("#view"), { childList: true });
+}
+// 시험용 (화면 조작 없이 계산 확인) - 자료에는 영향 없음
+window.APP = { S, sha256, periodOf, yearsServed, legalRef, summary, validateBackup, buildBackup, planRoster, restoreFromText, snapshot, verifyAgainst, undoRestore, rollbackTo, enterRecovery,
+  importRoster, load, render, all, getS, write, uuid, recordsCSV, summaryCSV, replaceAll, version: APP_VERSION };
+start();
+</script>
+</body>
+</html>

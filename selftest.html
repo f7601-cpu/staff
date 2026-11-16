@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>인원현황 관리표 · 폰 자체시험</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;margin:0;background:#F4F6FA;color:#1A202C;font-size:15px}
+  header{background:#1F3A5F;color:#fff;padding:16px}
+  header h1{margin:0;font-size:19px} header p{margin:6px 0 0;font-size:13px;opacity:.85}
+  main{padding:14px}
+  .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  button{font-size:16px;border:0;border-radius:10px;padding:14px;width:100%;min-height:48px;margin:6px 0;background:#E2E8F0}
+  button.pri{background:#E67E22;color:#fff;font-weight:700}
+  button:disabled{opacity:.5}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid #E2E8F0;padding:7px 4px;text-align:left;vertical-align:top}
+  th:first-child,td:first-child,th:last-child,td:last-child{white-space:nowrap}
+  .ok{color:#2F855A;font-weight:700} .ng{color:#C53030;font-weight:700}
+  .big{font-size:26px;font-weight:800;text-align:center;padding:10px}
+  #frameWrap{height:420px;overflow:hidden;border:2px dashed #CBD5E0;border-radius:10px;background:#fff}
+  iframe{width:412px;height:840px;border:0;transform:scale(.5);transform-origin:0 0}
+  .muted{color:#718096;font-size:13px}
+  pre{white-space:pre-wrap;font-size:12px;background:#EDF2F7;padding:8px;border-radius:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>인원현황 관리표 · 폰 자체시험</h1>
+  <p>이 폰의 크롬에서 앱을 직접 실행해 고장 상황을 일부러 만들고 결과를 확인합니다.</p>
+</header>
+<main>
+  <div class="card">
+    <b>시작 전 확인</b>
+    <ul class="muted" style="padding-left:18px;margin:8px 0">
+      <li>시험은 <b>시험 전용 저장소</b>에서 돌아갑니다. 앱에 넣은 자료는 건드리지 않습니다.</li>
+      <li>시험 중 파일 다운로드는 막아 둡니다.</li>
+      <li>약 1분 걸립니다. 끝날 때까지 화면을 끄거나 다른 앱으로 가지 마세요.</li>
+    </ul>
+    <button class="pri" id="run">▶ 시험 시작</button>
+  </div>
+  <div class="card" id="sumCard" style="display:none">
+    <div class="big" id="sum"></div>
+    <div class="muted" id="env"></div>
+    <button id="copy">📋 결과 복사 (카톡에 붙여넣기)</button>
+    <button id="save">💾 결과 파일 저장</button>
+  </div>
+  <div class="card"><table><thead><tr><th>번호</th><th>시험</th><th>결과</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="card"><b>실행 화면 (축소)</b><div id="frameWrap"><iframe id="app" title="시험 중인 앱"></iframe></div></div>
+</main>
+<script>
+"use strict";
+const TEST_DB = "staff-leave-selftest", PIN = "4826";
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const R = [];
+let W, D, SRC = "", SRC_HASH = "";
+
+function row(no, name, ok, detail) {
+  R.push({ no, name, ok, detail });
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${no}</td><td>${name}<div class="muted">${String(detail).replace(/</g, "&lt;")}</div></td><td class="${ok ? "ok" : "ng"}">${ok ? "합격" : "불합격"}</td>`;
+  $("#rows").appendChild(tr);
+}
+async function sha256hex(t) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+function delDB() { return new Promise(r => { const q = indexedDB.deleteDatabase(TEST_DB); q.onsuccess = q.onerror = q.onblocked = () => r(); }); }
+
+/** 앱 원본(index.html)을 그대로 가져와 저장소 이름만 시험용으로 바꾸고, 다운로드·공유만 막아서 실행 */
+function prepare(src) {
+  const pre = `<script>
+    HTMLAnchorElement.prototype.click = function () { if (this.download) { window.__blockedDownloads = (window.__blockedDownloads || 0) + 1; return; } return HTMLElement.prototype.click.call(this); };
+    try { Object.defineProperty(navigator, "share", { value: undefined, configurable: true }); Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true }); } catch (_) {}
+  <\/script>`;
+  let s = src;
+  if (!s.includes('DB_NAME = "staff-leave-db"')) throw new Error("앱 파일에서 저장소 이름을 찾지 못함 (버전 확인)");
+  s = s.replace('DB_NAME = "staff-leave-db"', `DB_NAME = "${TEST_DB}"`);
+  s = s.replace("<head>", "<head>" + pre);
+  return s;
+}
+async function boot() {
+  const f = $("#app");
+  await new Promise(r => { f.onload = r; f.srcdoc = prepare(SRC); });
+  W = f.contentWindow; D = f.contentDocument;
+  for (let i = 0; i < 50 && !(W.APP && D.querySelector("#keys [data-k]")); i++) await sleep(100);
+  await sleep(300);
+}
+async function pin(code) { for (const k of code) { D.querySelector(`#keys [data-k="${k}"]`).click(); await sleep(60); } await sleep(350); }
+async function dlg(ok = true, timeout = 6000) {
+  for (let t = 0; t < timeout; t += 100) {
+    const all = D.querySelectorAll(".dlg"), d = all[all.length - 1];
+    if (d) { const msg = d.querySelector(".msg").textContent; (d.querySelector(`[data-r="${ok ? 1 : 0}"]`) || d.querySelector('[data-r="1"]')).click(); await sleep(150); return msg; }
+    await sleep(100);
+  }
+  throw new Error("확인 창이 나타나지 않음");
+}
+const ids = () => W.APP.snapshot().then(s => JSON.stringify(["employees", "attendance", "leave_balances"].map(n => s[n].map(x => x.id).sort())));
+async function restoreWith(text, flags = {}) {
+  Object.assign(W, flags);
+  const p = W.APP.restoreFromText(text, { skipConfirm: true });
+  await dlg(true);              // 복원 대상 확인
+  const msg = await dlg(true);  // 결과 안내
+  const r = await p;
+  Object.keys(flags).forEach(k => W[k] = false);
+  return [msg, r];
+}
+async function step(no, name, fn) {
+  try { const [ok, detail] = await fn(); row(no, name, ok, detail); }
+  catch (ex) { row(no, name, false, "오류: " + (ex && ex.message || ex)); }
+}
+
+async function runAll() {
+  $("#run").disabled = true; $("#run").textContent = "시험 중…";
+  R.length = 0; $("#rows").innerHTML = "";
+  SRC = await (await fetch("index.html", { cache: "no-store" })).text();
+  SRC_HASH = (await sha256hex(SRC)).slice(0, 16);
+  await delDB();
+  await boot();
+  const ver = W.APP.version;
+
+  await step("S01", "첫 실행: 비밀번호 정하기 전에는 자료를 열지 않음", async () => {
+    const before = D.querySelector("#view").innerHTML.length, lockShown = !D.querySelector("#lock").classList.contains("hidden");
+    await pin(PIN); const mid = D.querySelector("#view").innerHTML.length; await pin(PIN);
+    const opened = D.querySelector("#lock").classList.contains("hidden") && D.querySelector("#view").innerHTML.length > 100;
+    return [before === 0 && lockShown && mid === 0 && opened, `처음 화면 ${before} · 잠금 ${lockShown} · 1회 후 ${mid} · 2회 후 열림 ${opened}`];
+  });
+
+  // 시험 자료 (가상 인물)
+  const A = W.APP, now = new Date().toISOString();
+  const emps = [["시험01", "2002-03-12", "남"], ["시험02", "2015-07-01", "여"], ["시험03", "2024-01-02", "남"]].map(([n, h, g]) =>
+    ({ id: A.uuid(), name: n, category: "현장직", gender: g, hireDate: h, status: "재직", leaveMode: "auto", memo: "", createdAt: now, updatedAt: now }));
+  const [e1, e2] = emps, P = A.periodOf("2026-08-01");
+  const recs = [[e1, "2026-08-03", "연차", 1, null], [e1, "2026-08-04", "반차", 0.5, null], [e1, "2026-08-05", "조퇴", null, 30],
+    [e2, "2026-09-01", "지각", null, 15], [e2, "2026-09-02", "결근", 1, null]].map(([e, d, t, u, m]) =>
+    ({ id: A.uuid(), employeeId: e.id, date: d, type: t, units: u, minutes: m, reason: "시험", createdAt: now, updatedAt: now }));
+  const bal = { id: A.uuid(), employeeId: e2.id, periodStart: P.start, periodEnd: P.end, overrideDays: 16, calculatedDays: 16, reason: "시험 확정", updatedAt: now };
+
+  await step("S02", "이 폰 저장소에 저장 · 다시 읽기 · 연차 계산", async () => {
+    await A.write(emps.map(v => ({ store: "employees", op: "put", value: v })).concat(recs.map(v => ({ store: "attendance", op: "put", value: v })), [{ store: "leave_balances", op: "put", value: bal }]), "시험 자료");
+    await A.load();
+    const s1 = A.summary(A.S.emps.find(e => e.id === e1.id), P), s2 = A.summary(A.S.emps.find(e => e.id === e2.id), P);
+    const ok = A.S.emps.length === 3 && A.S.recs.length === 5 && s1.total === 25 && s1.used === 1.5 && s1.remain === 23.5 && s1.early === 1 && s1.earlyMin === 30 && s2.total === 16 && s2.absent === 1;
+    return [ok, `직원 ${A.S.emps.length} · 기록 ${A.S.recs.length} · 시험01 총${s1.total}/사용${s1.used}/잔여${s1.remain}/조퇴${s1.earlyMin}분 · 시험02 확정${s2.total}/결근${s2.absent}`];
+  });
+
+  let btext = "";
+  await step("S03", "백업 만들기 (한 시점) · 스스로 검사 통과", async () => {
+    const b = await A.buildBackup(); btext = JSON.stringify(b);
+    const v = A.validateBackup(btext), hasPin = "pinHash" in b.data.settings;
+    return [v.ok && !hasPin && b.counts.employees === 3, `검사 ${v.ok} · 직원 ${b.counts.employees} · 기록 ${b.counts.attendance} · 비밀번호 제외 ${!hasPin}`];
+  });
+
+  await step("S04", "[N03·N15] 잘못된 백업은 복원 전에 거부 (체크섬 다시 계산)", async () => {
+    const base = JSON.parse(btext), cases = [];
+    const mk = (label, fn) => { const o = JSON.parse(JSON.stringify(base)); fn(o); o.integrity.checksum = A.sha256(JSON.stringify(o.data)); cases.push([label, JSON.stringify(o)]); };
+    mk("settings=null", o => o.data.settings = null);
+    mk("버전 0", o => o.schemaVersion = 0);
+    mk("조퇴 −30분", o => o.data.attendance.find(r => r.type === "조퇴").minutes = -30);
+    mk("기록 ID 중복", o => o.data.attendance.push(Object.assign({}, o.data.attendance[0])));
+    mk("퇴사일<입사일", o => Object.assign(o.data.employees[0], { hireDate: "2020-05-01", terminationDate: "2019-01-01", status: "퇴사" }));
+    mk("같은 날 연차 2일", o => { const r = o.data.attendance.find(x => x.type === "연차"); o.data.attendance.push(Object.assign({}, r, { id: "dup-1" })); });
+    mk("이력 시각 오류", o => o.data.audit_logs[0].timestamp = "2026-99-99T25:00");
+    mk("설정에 비밀번호 끼워넣기", o => o.data.settings.pinHash = "abc");
+    const res = cases.map(([l, t]) => [l, A.validateBackup(t)]);
+    return [res.every(([, v]) => !v.ok), `거부 ${res.filter(([, v]) => !v.ok).length}/${res.length} · ` + res.map(([l, v]) => `${l}${v.ok ? "→통과(X)" : ""}`).join(" / ")];
+  });
+
+  const before = await ids();
+  await step("S05", "정상 복원 → 전체 일치 확인", async () => {
+    const [m, r] = await restoreWith(btext);
+    return [r === true && m.includes("모두 백업과 일치"), m.split("\n")[0] + " · " + m.split("\n")[1]];
+  });
+
+  await step("N12", "[P0] 복원 후 불일치 + 자동 되돌림도 실패", async () => {
+    const [m, r] = await restoreWith(btext, { __tamperAfterReplace: true, __failRollback: true });
+    const saved = !!(await A.getS("recoveryNeeded"));
+    const blocked = await A.write([{ store: "employees", op: "put", value: { id: "x1", name: "막힘시험", category: "현장직", status: "재직" } }], "시험").then(() => "저장됨", e => e.message);
+    await boot(); await pin(PIN);                                   // 앱을 닫았다 다시 연 것과 같음
+    const banner = !!D.querySelector("#recoveryBanner");
+    const p = W.APP.undoRestore(); await dlg(true); await p; await sleep(300);
+    const cleared = W.APP.S.recovery == null && !W.APP.S.emps.some(e => e.name === "시험용 변조");
+    const ok = r === false && m.includes("복구가 필요") && !m.split("\n")[0].includes("되돌렸") && saved && blocked.includes("저장 제한") && banner && cleared;
+    return [ok, `'${m.split("\n")[0]}' · 복구 필요 기록 ${saved} · 저장 시도 '${blocked}' · 다시 연 뒤 경고 ${banner} · 되돌리기 후 해제 ${cleared}`];
+  });
+
+  await step("N13", "[P0] 복원 성공 + 검사 읽기 실패", async () => {
+    const b1 = await ids();
+    const [m, r] = await restoreWith(btext, { __failVerify: 1 });
+    const same = JSON.parse(await ids())[0].join() === JSON.parse(b1)[0].join();
+    return [r === false && m.includes("검사 실패") && m.includes("일치를 확인") && same, `'${m.split("\n")[0].slice(0, 40)}…' · 검사 실패 표시 ${m.includes("검사 실패")} · 직원 원상태 ${same}`];
+  });
+
+  await step("N14", "[P1] 수정 이력 내용만 변조 (ID·건수 같음)", async () => {
+    const [m, r] = await restoreWith(btext, { __tamperAudit: true });
+    return [r === false && m.includes("audit_logs"), `결과 ${r} · audit_logs 검출 ${m.includes("audit_logs")}`];
+  });
+
+  await step("N16", "[P2] 명단 추가 + 새 구분 = 한 번에 저장 (실패 시 전부 취소)", async () => {
+    W.__failWriteAt = 1;
+    const p = W.APP.importRoster("﻿이름,구분,성별,입사일\r\n외주01,협력업체,남,2024-01-02\r\n");
+    await dlg(true); const m = await dlg(true); await p;
+    W.__failWriteAt = -1; await W.APP.load();
+    const emp = W.APP.S.emps.some(e => e.name === "외주01"), cat = W.APP.S.cats.includes("협력업체");
+    return [!emp && !cat && m.includes("전부 취소"), `'${m.split("\n")[0]}' · 직원 들어감 ${emp} · 구분 들어감 ${cat}`];
+  });
+
+  await step("S06", "시험 뒤 자료 상태 정상 · 다운로드 차단 확인", async () => {
+    const rc = W.APP.S.recovery, v = W.APP.validateBackup(JSON.stringify(await W.APP.buildBackup())).ok;
+    return [rc == null && v, `복구 필요 상태 ${rc ? "있음" : "없음"} · 현재 자료 검사 ${v} · 막은 다운로드 ${W.__blockedDownloads || 0}건`];
+  });
+
+  // 정리
+  $("#app").srcdoc = "<p style='font:14px sans-serif;padding:12px'>시험 끝 · 시험 저장소 삭제함</p>"; await sleep(300); await delDB();
+
+  const pass = R.filter(r => r.ok).length;
+  let persisted = "확인 불가", quota = "";
+  try { persisted = (await navigator.storage.persisted()) ? "켜짐" : "기본"; const e = await navigator.storage.estimate(); quota = ` · 저장 가능 ${(e.quota / 1048576).toFixed(0)}MB`; } catch (_) {}
+  const env = `앱 v${ver} · 파일지문 ${SRC_HASH} · ${new Date().toLocaleString("ko-KR")} · ${navigator.userAgent.match(/Android [\d.]+|iPhone OS [\d_]+|Windows NT [\d.]+/)?.[0] || "기기 확인 불가"} · ${navigator.userAgent.match(/Chrome\/[\d]+/)?.[0] || "브라우저 확인 불가"} · 저장 보호 ${persisted}${quota}`;
+  $("#sum").innerHTML = `<span class="${pass === R.length ? "ok" : "ng"}">${pass}/${R.length} 합격</span>`;
+  $("#env").textContent = env; $("#sumCard").style.display = "block";
+  window.__report = `[인원현황 폰 자체시험] ${pass}/${R.length} 합격\n${env}\n` + R.map(r => `${r.no} ${r.ok ? "합격" : "불합격"} | ${r.name} | ${r.detail}`).join("\n");
+  $("#run").disabled = false; $("#run").textContent = "▶ 다시 시험";
+  window.scrollTo(0, 0);
+}
+$("#run").onclick = () => runAll().catch(ex => { row("ERR", "시험 진행 오류", false, ex && ex.message || ex); $("#run").disabled = false; $("#run").textContent = "▶ 다시 시험"; });
+$("#copy").onclick = async () => { try { await navigator.clipboard.writeText(window.__report); $("#copy").textContent = "✅ 복사됨 · 카톡에 붙여넣기"; } catch (_) { prompt("아래 내용을 길게 눌러 복사하세요", window.__report); } };
+$("#save").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([window.__report], { type: "text/plain" })); a.download = `인원현황_폰자체시험_${Date.now()}.txt`; a.click(); };
+</script>
+</body>
+</html>
